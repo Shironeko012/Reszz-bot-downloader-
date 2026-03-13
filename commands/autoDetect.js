@@ -1,35 +1,24 @@
 /**
  * Auto Link Detection
- * Detect media links and suggest available commands
  */
 
 const validator = require("../utils/validator")
 const logger = require("../utils/logger")
-
-/**
- * Supported platforms
- */
+const linkConverter = require("../lib/linkConverter")
 
 const supportedPlatforms = [
     "tiktok.com",
-    "vt.tiktok.com",
     "instagram.com",
     "facebook.com",
-    "fb.watch",
     "youtube.com",
     "youtu.be",
     "twitter.com",
-    "x.com",
-    "reddit.com"
+    "x.com"
 ]
-
-/**
- * Detect if URL belongs to supported platform
- */
 
 function detectPlatform(url) {
 
-    return supportedPlatforms.find(domain => url.includes(domain))
+    return supportedPlatforms.find(d => url.includes(d))
 
 }
 
@@ -41,23 +30,13 @@ module.exports = async function autoDetect(sock, m, text) {
 
         if (!text) return
 
-        /**
-         * Validate URL
-         */
-
         if (!validator.isURL(text)) return
 
-        /**
-         * Check supported platform
-         */
+        const url = linkConverter.normalize(text)
 
-        const platform = detectPlatform(text)
+        const platform = detectPlatform(url)
 
         if (!platform) return
-
-        /**
-         * Send suggestion message
-         */
 
         const message = `🔗 *Link terdeteksi*
 
@@ -66,10 +45,10 @@ Platform: ${platform}
 Pilih tindakan:
 
 📥 Download video
-.dl ${text}
+.dl ${url}
 
 🎵 Convert ke MP3
-.mp3 ${text}`
+.mp3 ${url}`
 
         await sock.sendMessage(chat, {
             text: message
