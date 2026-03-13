@@ -1,13 +1,19 @@
 /**
  * Worker Pool
- * Manages concurrent download workers
+ * Manage concurrent downloader workers
  */
 
 const os = require("os")
 const logger = require("../utils/logger")
 const downloadWorker = require("./downloadWorker")
 
-const MAX_WORKERS = Math.max(2, os.cpus().length)
+/**
+ * Limit worker count
+ * Prevent overload when CPU count is high
+ */
+
+const CPU_COUNT = os.cpus().length
+const MAX_WORKERS = Math.min(Math.max(2, CPU_COUNT), 6)
 
 let activeWorkers = 0
 const waitingQueue = []
@@ -23,7 +29,11 @@ function runNext() {
 
     job()
         .catch(err => {
-            logger.error("WORKER_JOB_ERROR", err)
+
+            logger.error("WORKER_JOB_ERROR", {
+                error: err.message
+            })
+
         })
         .finally(() => {
 
@@ -34,7 +44,7 @@ function runNext() {
         })
 }
 
-function enqueue(job) {
+function enqueue(task) {
 
     return new Promise((resolve, reject) => {
 
@@ -42,13 +52,13 @@ function enqueue(job) {
 
             try {
 
-                const result = await job()
+                const result = await task()
 
                 resolve(result)
 
-            } catch (err) {
+            } catch (error) {
 
-                reject(err)
+                reject(error)
 
             }
 
@@ -59,30 +69,38 @@ function enqueue(job) {
     })
 }
 
+/**
+ * Video downloader
+ */
+
 async function download(url) {
 
     return enqueue(async () => {
 
-        logger.info("WORKER_DOWNLOAD_START", url)
+        logger.info("WORKER_VIDEO_START", { url })
 
         const result = await downloadWorker.downloadVideo(url)
 
-        logger.info("WORKER_DOWNLOAD_FINISH")
+        logger.info("WORKER_VIDEO_FINISH", { url })
 
         return result
 
     })
 }
 
+/**
+ * MP3 downloader
+ */
+
 async function downloadMP3(url) {
 
     return enqueue(async () => {
 
-        logger.info("WORKER_MP3_START", url)
+        logger.info("WORKER_MP3_START", { url })
 
         const result = await downloadWorker.downloadMP3(url)
 
-        logger.info("WORKER_MP3_FINISH")
+        logger.info("WORKER_MP3_FINISH", { url })
 
         return result
 
