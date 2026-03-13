@@ -1,7 +1,6 @@
 /**
  * MP3 Downloader Command
  * Command: .mp3 <url>
- * Convert video link to MP3 audio
  */
 
 const validator = require("../utils/validator")
@@ -12,6 +11,7 @@ const cacheSystem = require("../systems/cacheSystem")
 const workerPool = require("../workers/workerPool")
 const formatter = require("../lib/formatter")
 const selfDestruct = require("../utils/selfDestruct")
+const linkConverter = require("../lib/linkConverter")
 
 module.exports = async function mp3Command(sock, m, args) {
 
@@ -19,10 +19,6 @@ module.exports = async function mp3Command(sock, m, args) {
     const sender = m.key.participant || m.key.remoteJid
 
     try {
-
-        /**
-         * Validate arguments
-         */
 
         if (!args || !args[0]) {
 
@@ -33,11 +29,8 @@ module.exports = async function mp3Command(sock, m, args) {
             return
         }
 
-        const url = args[0].trim()
-
-        /**
-         * Validate URL
-         */
+        const rawUrl = args[0]
+        const url = linkConverter.normalize(rawUrl)
 
         if (!validator.isURL(url)) {
 
@@ -47,10 +40,6 @@ module.exports = async function mp3Command(sock, m, args) {
 
             return
         }
-
-        /**
-         * Rate limit
-         */
 
         const allowed = rateLimiter.check(sender)
 
@@ -62,10 +51,6 @@ module.exports = async function mp3Command(sock, m, args) {
 
             return
         }
-
-        /**
-         * Check cache
-         */
 
         const cached = await cacheSystem.get(url + "_mp3")
 
@@ -82,17 +67,9 @@ module.exports = async function mp3Command(sock, m, args) {
             return
         }
 
-        /**
-         * Inform user
-         */
-
         await sock.sendMessage(chat, {
             text: "🎵 Mengubah video menjadi MP3..."
         }, { quoted: m })
-
-        /**
-         * Queue job
-         */
 
         const result = await queue.add(async () => {
 
@@ -100,38 +77,13 @@ module.exports = async function mp3Command(sock, m, args) {
 
         })
 
-        if (!result || !result.file) {
-
-            throw new Error("MP3 conversion failed")
-
-        }
-
-        /**
-         * Caption info
-         */
-
-        const caption = formatter.audio(result.metadata)
-
-        /**
-         * Send audio
-         */
-
         const sent = await sock.sendMessage(chat, {
             audio: { url: result.file },
             mimetype: "audio/mpeg",
-            fileName: "audio.mp3",
-            ptt: false
+            fileName: "audio.mp3"
         }, { quoted: m })
 
-        /**
-         * Save cache
-         */
-
         await cacheSystem.set(url + "_mp3", result.file)
-
-        /**
-         * Self destruct
-         */
 
         selfDestruct(sock, chat, sent.key)
 
@@ -140,7 +92,7 @@ module.exports = async function mp3Command(sock, m, args) {
         logger.error("MP3_ERROR", err)
 
         await sock.sendMessage(chat, {
-            text: "❌ Terjadi kesalahan saat mengubah ke MP3."
+            text: "❌ Gagal convert ke MP3."
         }, { quoted: m })
 
     }
