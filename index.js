@@ -37,7 +37,7 @@ async function startBot(){
 
 try{
 
-    logger.info("BOT_STARTING")
+    console.log("🚀 BOT STARTING...")
 
     /*
     REGISTER SYSTEMS
@@ -70,9 +70,17 @@ try{
 
         logger: pino({ level: "silent" }),
 
-        browser: ["DownloaderBot","Node","WA"]
+        browser: ["DownloaderBot","Node","WA"],
+
+        printQRInTerminal: true,   // ⬅️ WAJIB agar QR muncul
+
+        syncFullHistory: false,
+
+        markOnlineOnConnect: true
 
     })
+
+    console.log("📡 SOCKET CREATED")
 
     /*
     SAVE SESSION
@@ -90,13 +98,13 @@ try{
 
         if(connection === "connecting"){
 
-            logger.info("CONNECTING_WHATSAPP")
+            console.log("🔄 Connecting to WhatsApp...")
 
         }
 
         if(connection === "open"){
 
-            logger.info("BOT_CONNECTED")
+            console.log("✅ BOT CONNECTED")
 
         }
 
@@ -104,11 +112,11 @@ try{
 
             const reason = lastDisconnect?.error?.output?.statusCode
 
-            logger.warn("CONNECTION_CLOSED", reason)
+            console.log("❌ Connection closed:", reason)
 
             if(reason !== DisconnectReason.loggedOut){
 
-                logger.info("RECONNECTING")
+                console.log("♻️ Reconnecting in 5 seconds...")
 
                 setTimeout(startBot,5000)
 
