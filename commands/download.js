@@ -1,7 +1,6 @@
 /**
- * Downloader Command
+ * Video Downloader Command
  * Command: .dl <url>
- * Download video mp4 from supported platforms
  */
 
 const validator = require("../utils/validator")
@@ -12,6 +11,7 @@ const cacheSystem = require("../systems/cacheSystem")
 const workerPool = require("../workers/workerPool")
 const formatter = require("../lib/formatter")
 const selfDestruct = require("../utils/selfDestruct")
+const linkConverter = require("../lib/linkConverter")
 
 module.exports = async function downloadCommand(sock, m, args) {
 
@@ -19,10 +19,6 @@ module.exports = async function downloadCommand(sock, m, args) {
     const sender = m.key.participant || m.key.remoteJid
 
     try {
-
-        /**
-         * Validate argument
-         */
 
         if (!args || !args[0]) {
 
@@ -33,11 +29,8 @@ module.exports = async function downloadCommand(sock, m, args) {
             return
         }
 
-        const url = args[0].trim()
-
-        /**
-         * Validate URL
-         */
+        const rawUrl = args[0]
+        const url = linkConverter.normalize(rawUrl)
 
         if (!validator.isURL(url)) {
 
@@ -47,10 +40,6 @@ module.exports = async function downloadCommand(sock, m, args) {
 
             return
         }
-
-        /**
-         * Rate limiter
-         */
 
         const allowed = rateLimiter.check(sender)
 
@@ -62,10 +51,6 @@ module.exports = async function downloadCommand(sock, m, args) {
 
             return
         }
-
-        /**
-         * Check cache
-         */
 
         const cached = await cacheSystem.get(url)
 
@@ -81,17 +66,9 @@ module.exports = async function downloadCommand(sock, m, args) {
             return
         }
 
-        /**
-         * Inform user download started
-         */
-
         await sock.sendMessage(chat, {
             text: "📥 Mengunduh video..."
         }, { quoted: m })
-
-        /**
-         * Queue download job
-         */
 
         const result = await queue.add(async () => {
 
@@ -99,35 +76,14 @@ module.exports = async function downloadCommand(sock, m, args) {
 
         })
 
-        if (!result || !result.file) {
-
-            throw new Error("Download gagal")
-        }
-
-        /**
-         * Format caption
-         */
-
         const caption = formatter.video(result.metadata)
-
-        /**
-         * Send video
-         */
 
         const sent = await sock.sendMessage(chat, {
             video: { url: result.file },
-            caption: caption
+            caption
         }, { quoted: m })
 
-        /**
-         * Save cache
-         */
-
         await cacheSystem.set(url, result.file)
-
-        /**
-         * Self destruct message
-         */
 
         selfDestruct(sock, chat, sent.key)
 
@@ -136,7 +92,7 @@ module.exports = async function downloadCommand(sock, m, args) {
         logger.error("DOWNLOAD_ERROR", err)
 
         await sock.sendMessage(chat, {
-            text: "❌ Terjadi kesalahan saat mengunduh video."
+            text: "❌ Terjadi kesalahan saat download."
         }, { quoted: m })
 
     }
