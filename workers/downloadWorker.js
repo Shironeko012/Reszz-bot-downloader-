@@ -1,19 +1,17 @@
 /**
  * Download Worker
- * Executes a single download job
+ * Execute download tasks using downloader engine
  */
 
-const path = require("path")
 const logger = require("../utils/logger")
 const downloader = require("../lib/downloader")
 const retryEngine = require("../lib/retryEngine")
-const fileManager = require("../utils/fileManager")
 
 async function downloadVideo(url) {
 
     try {
 
-        const result = await retryEngine.execute(async () => {
+        const result = await retryEngine.retry(async () => {
 
             return await downloader.downloadVideo(url)
 
@@ -23,7 +21,10 @@ async function downloadVideo(url) {
 
     } catch (error) {
 
-        logger.error("WORKER_VIDEO_DOWNLOAD_FAILED", error)
+        logger.error("WORKER_VIDEO_DOWNLOAD_FAILED", {
+            url,
+            error: error.message
+        })
 
         throw error
     }
@@ -34,9 +35,9 @@ async function downloadMP3(url) {
 
     try {
 
-        const result = await retryEngine.execute(async () => {
+        const result = await retryEngine.retry(async () => {
 
-            return await downloader.downloadMP3(url)
+            return await downloader.downloadAudio(url)
 
         })
 
@@ -44,7 +45,10 @@ async function downloadMP3(url) {
 
     } catch (error) {
 
-        logger.error("WORKER_MP3_DOWNLOAD_FAILED", error)
+        logger.error("WORKER_MP3_DOWNLOAD_FAILED", {
+            url,
+            error: error.message
+        })
 
         throw error
     }
