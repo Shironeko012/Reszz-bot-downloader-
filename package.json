@@ -1,0 +1,17 @@
+{
+  "name": "wa-downloader-bot",
+  "version": "1.0.0",
+  "description": "WhatsApp Downloader Bot using yt-dlp",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Reszz",
+  "license": "MIT",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.5",
+    "pino": "^8.0.0",
+    "redis": "^4.6.7"
+  }
+}
